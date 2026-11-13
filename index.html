@@ -61,7 +61,7 @@
 </style>
 </head>
 <body>
-<div class="pill">¡Volvió el Calendario de Adviento más TOP! 🎄💖</div>
+<div class="pill">Un calendario de adviento solo para ti 🎄💖</div>
 <div class="counter">Abiertas <b id="n">0</b>/24</div>
 <div class="hint">Arrastra para girar · rueda/pellizco para acercar · toca puertas y objetos</div>
 <div class="player">
@@ -304,10 +304,23 @@ el.addEventListener('pointerup',e=>{ptrs.delete(e.pointerId);pinch=0;if(moved<(e
 el.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);pinch=0;});
 el.addEventListener('wheel',e=>{e.preventDefault();camDist=Math.min(28,Math.max(5,camDist+e.deltaY*.01));},{passive:false});
 
+// sonido al abrir cada cajita (sintetizado, sin archivos)
+let ac;
+function chime(day){try{
+  ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
+  const now=ac.currentTime,out=ac.createGain();out.gain.value=.8;out.connect(ac.destination);
+  const pop=ac.createOscillator(),pg2=ac.createGain();pop.type='sine';pop.frequency.setValueAtTime(380,now);pop.frequency.exponentialRampToValueAtTime(70,now+.12);
+  pg2.gain.setValueAtTime(.35,now);pg2.gain.exponentialRampToValueAtTime(.001,now+.14);pop.connect(pg2).connect(out);pop.start(now);pop.stop(now+.16);
+  const scale=[0,2,4,7,9,12,14,16],base=523.25*Math.pow(2,scale[day%8]/12);
+  [0,4,7,12,16].forEach((st,i)=>{const o=ac.createOscillator(),g=ac.createGain(),t=now+.08+i*.075;
+    o.type=i%2?'sine':'triangle';o.frequency.value=base*Math.pow(2,st/12);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.16,t+.012);g.gain.exponentialRampToValueAtTime(.001,t+.8);
+    o.connect(g).connect(out);o.start(t);o.stop(t+.85);});
+}catch(e){}}
 const toast=document.getElementById('toast');
 function toggle(d){
   const u=d.userData;u.open=!u.open;u.target=u.open?-2.0:0;opened+=u.open?1:-1;document.getElementById('n').textContent=opened;
-  if(u.open){document.getElementById('emo').textContent=prizes[u.day-1][0];
+  if(u.open){chime(u.day);document.getElementById('emo').textContent=prizes[u.day-1][0];
     document.getElementById('prize').textContent='Día '+u.day+' · '+prizes[u.day-1][1];
     document.getElementById('quote').textContent='“'+quotes[u.day-1]+'”';
     document.getElementById('sub').textContent=opened===24?'¡Abriste las 24 puertas! 🎉':'Sigue adelante, tú puedes 💖';
