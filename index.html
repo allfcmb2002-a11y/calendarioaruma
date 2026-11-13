@@ -40,18 +40,35 @@
   .toast .quote{font-size:18px;line-height:1.35;margin:12px 0 4px;font-style:italic}
   .toast small{display:block;opacity:.7;margin-top:4px}
   .toast button{margin-top:14px;border:0;background:var(--rosa);color:#fff;font:800 15px 'Nunito';padding:10px 26px;border-radius:999px;cursor:pointer}
-  @media (max-width:480px){.player input{display:none}.hint{display:none}}
+  html,body{height:100dvh;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  .focus{display:none}
+  .toast{max-height:80dvh;overflow:auto}
+  @media (max-aspect-ratio:9/10){.focus{display:block}}
+  @media (max-width:600px){
+    .pill{white-space:normal;text-align:center;width:max-content;max-width:90vw;padding:9px 18px;font-size:13px;line-height:1.25;border-radius:20px}
+    .counter{top:calc(84px + env(safe-area-inset-top,0px));right:10px;padding:5px 12px;font-size:13px}
+    .counter b{font-size:17px}
+    .player{gap:10px;padding:8px 12px}
+    .player input,.hint{display:none}
+    .player .info{font-size:12px}
+    .toast{padding:20px}.toast .emo{font-size:48px}.toast .quote{font-size:16px}
+  }
+  @media (max-height:480px) and (orientation:landscape){
+    .pill{padding:6px 16px;font-size:12px;top:6px}.counter{top:48px;padding:4px 10px}.hint{display:none}
+    .player{padding:5px 12px}.player button{width:34px;height:34px}
+  }
   @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
 </head>
 <body>
-<div class="pill">¡Un calendario de adviento solo para ti! 🎄💖</div>
+<div class="pill">¡Volvió el Calendario de Adviento más TOP! 🎄💖</div>
 <div class="counter">Abiertas <b id="n">0</b>/24</div>
 <div class="hint">Arrastra para girar · rueda/pellizco para acercar · toca puertas y objetos</div>
 <div class="player">
   <button id="pp" aria-label="Reproducir o pausar">▶</button>
   <div class="info">🎵 Radio Aruma<small id="time">music.mp3 · empieza en 1:54</small></div>
   <input id="vol" type="range" min="0" max="1" step=".01" value=".7" aria-label="Volumen">
+  <button id="focus" class="focus" aria-label="Alternar vista radio y calendario">📻</button>
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast" role="status">
@@ -72,7 +89,7 @@ const quotes=["No te rindas: lo mejor está a punto de llegar.","Cada paso, por 
 
 // ---------- renderer / escena ----------
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.75:2));
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -86,11 +103,11 @@ let camDist=12.5;
   [[0,8,4,6,.3,3],[-7,3,3,.3,5,5],[7,3,3,.3,5,5],[0,2,-8,10,4,.3]].forEach(([x,y,z,w,h,d])=>{
     const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color:0xffffff}));m.position.set(x,y,z);es.add(m);});
   scene.environment=pm.fromScene(es,.03).texture;})();
-scene.fog=new THREE.Fog(0xffc2da,18,34);
+scene.fog=new THREE.Fog(0xffc2da,28,60);
 
 scene.add(new THREE.HemisphereLight(0xffffff,0xff9cc4,.55));
 const sun=new THREE.DirectionalLight(0xfff0f6,1.1);
-sun.position.set(5,10,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.radius=4;sun.shadow.bias=-.0004;
+sun.position.set(5,10,8);sun.castShadow=true;sun.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);sun.shadow.radius=4;sun.shadow.bias=-.0004;
 Object.assign(sun.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:1,far:28});scene.add(sun);
 const glow=new THREE.PointLight(0xff4fa3,1.1,14);glow.position.set(0,3,3.5);scene.add(glow);
 
@@ -161,7 +178,7 @@ function toy(g,name,x,z,rot){g.position.set(x,g.position.y,z);if(rot)g.rotation.
   g.traverse(m=>{if(m.isMesh){m.castShadow=true;m.userData.label=name;m.userData.act=()=>{t.vy=.1;t.spin=.45;};clickables.push(m);}});return g;}
 function bottle(col,h,r,cap,name,x,z){
   const g=new THREE.Group();g.position.y=-2.2;
-  const b=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.05,h,40),new THREE.MeshPhysicalMaterial({color:col,roughness:.08,clearcoat:1,transmission:.25,thickness:.4,ior:1.45}));
+  const b=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.05,h,40),new THREE.MeshPhysicalMaterial({color:col,roughness:.08,clearcoat:1,transmission:innerWidth<700?0:.25,thickness:.4,ior:1.45}));
   b.position.y=h/2;g.add(b);
   const liq=new THREE.Mesh(new THREE.CylinderGeometry(r*.82,r*.86,h*.7,32),new THREE.MeshStandardMaterial({color:col,roughness:.3}));liq.position.y=h*.4;g.add(liq);
   const lab=new THREE.Mesh(new THREE.CylinderGeometry(r*1.02,r*1.07,h*.36,40,1,true),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.6,side:THREE.DoubleSide}));lab.position.y=h*.42;g.add(lab);
@@ -280,12 +297,12 @@ el.addEventListener('pointermove',e=>{
     tip$.style.opacity=h?1:0;if(h){tip$.textContent=h.object.userData.label;tip$.style.left=e.clientX+'px';tip$.style.top=e.clientY+'px';}return;}
   ptrs.set(e.pointerId,e);
   if(ptrs.size==2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
-    if(pinch)camDist=Math.min(17,Math.max(6,camDist-(d-pinch)*.03));pinch=d;moved=99;return;}
+    if(pinch)camDist=Math.min(28,Math.max(5,camDist-(d-pinch)*.04));pinch=d;moved=99;return;}
   const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;moved+=Math.abs(dx)+Math.abs(dy);
   tYaw=Math.max(-1,Math.min(1,tYaw+dx*.006));tPitch=Math.max(-.1,Math.min(.45,tPitch+dy*.004));});
-el.addEventListener('pointerup',e=>{ptrs.delete(e.pointerId);pinch=0;if(moved<6){const h=pick(e);if(h&&h.object.userData.act)h.object.userData.act();}});
+el.addEventListener('pointerup',e=>{ptrs.delete(e.pointerId);pinch=0;if(moved<(e.pointerType==='touch'?14:6)){const h=pick(e);if(h&&h.object.userData.act)h.object.userData.act();}});
 el.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);pinch=0;});
-el.addEventListener('wheel',e=>{e.preventDefault();camDist=Math.min(17,Math.max(6,camDist+e.deltaY*.01));},{passive:false});
+el.addEventListener('wheel',e=>{e.preventDefault();camDist=Math.min(28,Math.max(5,camDist+e.deltaY*.01));},{passive:false});
 
 const toast=document.getElementById('toast');
 function toggle(d){
@@ -303,7 +320,13 @@ const bits=[];
 function confetti(){for(let i=0;i<60;i++){const m=new THREE.Mesh(new THREE.PlaneGeometry(.12,.07),new THREE.MeshBasicMaterial({color:[0xff2d8d,0xffffff,0xffe27a,0xff7ab8][i%4],side:THREE.DoubleSide}));
   m.position.set((Math.random()-.5)*2,1.5,2.5);m.userData={v:new THREE.Vector3((Math.random()-.5)*.14,.08+Math.random()*.12,(Math.random()-.2)*.08),r:new THREE.Vector3(Math.random()*.3,Math.random()*.3,Math.random()*.3),life:110};scene.add(m);bits.push(m);}}
 
-function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+let portrait=null,focusRadio=false,lookX=1;
+const focusBtn=document.getElementById('focus');
+focusBtn.onclick=()=>{focusRadio=!focusRadio;camDist=focusRadio?9:15;focusBtn.textContent=focusRadio?'🎄':'📻';};
+function resize(){const w=innerWidth,h=innerHeight,p=w/h<.9;
+  renderer.setSize(w,h);camera.aspect=w/h;
+  if(p!==portrait){portrait=p;camera.fov=p?58:40;camDist=p?15:12.5;focusRadio=false;focusBtn.textContent='📻';}
+  camera.updateProjectionMatrix();}
 addEventListener('resize',resize);resize();
 
 const clock=new THREE.Clock();let nt=0;
@@ -311,8 +334,9 @@ function loop(){
   const t=clock.getElapsedTime();
   yaw+=(tYaw-yaw)*.08;pitch+=(tPitch-pitch)*.08;
   const idle=Math.sin(t*.4)*.03;
-  camera.position.set(Math.sin(yaw+idle)*camDist*Math.cos(pitch),1.6+Math.sin(pitch)*camDist,Math.cos(yaw+idle)*camDist*Math.cos(pitch));
-  camera.lookAt(1,.7,0);
+  const lt=portrait?(focusRadio?4.8:0):1;lookX+=(lt-lookX)*.07;
+  camera.position.set(lookX+Math.sin(yaw+idle)*camDist*Math.cos(pitch),1.6+Math.sin(pitch)*camDist,Math.cos(yaw+idle)*camDist*Math.cos(pitch));
+  camera.lookAt(lookX,portrait?1:.7,0);
   banner.position.y=3.9+Math.sin(t*1.6)*.07;banner.rotation.z=Math.sin(t*1.1)*.015;
   doors.forEach(d=>{const h=d.userData.hinge;h.rotation.y+=(d.userData.target-h.rotation.y)*.12;});
   cal.traverse(o=>{if(o.userData.spin){o.rotation.y=t*1.5;o.position.y=H-2.2+1.55+Math.sin(t*2)*.05;}});
